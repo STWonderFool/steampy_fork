@@ -1,7 +1,7 @@
 import enum
 import json
 import time
-from typing import List
+from typing import List, Iterable
 
 import requests
 from bs4 import BeautifulSoup
@@ -51,6 +51,22 @@ class ConfirmationExecutor:
         params['ck'] = confirmation.data_key
         headers = {'X-Requested-With': 'XMLHttpRequest'}
         return self._session.get(self.CONF_URL + '/ajaxop', params=params, headers=headers).json()
+
+    def allow_all_confirmations(self):
+        confirmations = self._get_confirmations()
+        selected_confirmations = []
+        for confirmation in confirmations:
+            selected_confirmations.append(confirmation)
+        self.send_multi_confirmations(selected_confirmations)
+
+    def send_multi_confirmations(self, confirmations: Iterable[Confirmation]):
+        tag = Tag.ALLOW
+        params = self._create_confirmation_params(tag.value)
+        params['op'] = tag.value,
+        params['cid[]'] = [i.data_confid for i in confirmations]
+        params['ck[]'] = [i.data_key for i in confirmations]
+        headers = {'X-Requested-With': 'XMLHttpRequest'}
+        return self._session.post(self.CONF_URL + '/multiajaxop', data=params, headers=headers)
 
     def _get_confirmations(self) -> List[Confirmation]:
         confirmations = []
