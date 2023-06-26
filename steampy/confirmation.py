@@ -45,16 +45,16 @@ class ConfirmationExecutor:
     def allow_only_market_listings(self):
         market_confirmations = []
         confirmations = self._get_confirmations()
-        for confirmation in confirmations.copy():
-            if confirmation.confirm_type == 'Market Listing':
+        for confirmation in confirmations:
+            if confirmation.confirm_type in ['Market Listing', 'Предложение на торговой площадке']:
                 market_confirmations.append(confirmation)
         self.send_multi_confirmations(market_confirmations)
 
     def allow_only_trade_offers(self):
         trade_offers = []
         confirmations = self._get_confirmations()
-        for confirmation in confirmations.copy():
-            if confirmation.confirm_type == 'Trade Offer':
+        for confirmation in confirmations:
+            if confirmation.confirm_type in ['Trade Offer', 'Предложение обмена']:
                 trade_offers.append(confirmation)
         self.send_multi_confirmations(trade_offers)
 
@@ -91,7 +91,10 @@ class ConfirmationExecutor:
         params = self._create_confirmation_params(tag)
         headers = {'X-Requested-With': 'com.valvesoftware.android.steam.community'}
         response = self._session.get(self.CONF_URL + '/getlist', params=params, headers=headers)
-        return response.json()['conf']
+        if response.status_code == 200:
+            return response.json()['conf']
+        else:
+            raise ConfirmationExpected
 
     def _create_confirmation_params(self, tag_string: str) -> dict:
         timestamp = int(time.time())
